@@ -1,6 +1,5 @@
 # 🎟️ Microservices-Based Event Booking System
-# Abdur Raheem 
-# Afrah Syed
+#### BY Abdur Raheem and Afrah Syed
 This project implements an **Event Booking System** using **FastAPI, Express.js, MongoDB, PostgreSQL, and RabbitMQ**. It allows users to book event tickets, handle payments, and receive notifications via RabbitMQ.
 
 ---
