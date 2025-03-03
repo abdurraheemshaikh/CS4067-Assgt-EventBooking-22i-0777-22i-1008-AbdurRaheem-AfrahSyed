@@ -42,6 +42,7 @@ Stores notifications in MongoDB<br>
 Provides API to fetch notifications<br>
 <br>
 
+
 ## 🛠 **Setup Guide**
 Run the following command in your terminal to install all dependencies:<br>
 pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo<br>
