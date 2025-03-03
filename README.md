@@ -47,14 +47,14 @@ Run the following command in your terminal to install all dependencies:<br>
 pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo<br>
 net start RabbitMQ  
 
-# Start User Service
+### Start User Service
 uvicorn user_service:app --host 0.0.0.0 --port 3001 --reload
 
-# Start Event Service
+### Start Event Service
 node event_service.js
 
-# Start Booking Service
+### Start Booking Service
 uvicorn booking_service:app --host 0.0.0.0 --port 3003 --reload
 
-# Start Notification Service
+### Start Notification Service
 uvicorn notification_service:app --host 0.0.0.0 --port 3004 --reload
