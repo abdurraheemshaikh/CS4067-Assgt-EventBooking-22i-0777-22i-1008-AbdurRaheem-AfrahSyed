@@ -16,6 +16,6 @@ The system follows a **microservices architecture**, where each service is indep
 | **Notification Service** | FastAPI, RabbitMQ, MongoDB (sends notifications) |
 
 ## 🛠 **Setup Guide**
-Run the following command in your terminal to install all dependencies:
-pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo
+Run the following command in your terminal to install all dependencies:\n
+pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo\n
 net start RabbitMQ  
