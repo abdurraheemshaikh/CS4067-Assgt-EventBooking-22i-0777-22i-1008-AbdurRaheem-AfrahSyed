@@ -32,5 +32,33 @@ app.get('/users', async (req, res) => {
     }
 });
 
+const axios = require('axios');
+
+app.get('/events', async (req, res) => {
+    try {
+        // Assuming Event Service is running on port 3002
+        const response = await axios.get('http://localhost:3002/events');
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching events:', error);
+        res.status(500).json({ error: "Failed to fetch events" });
+    }
+});
+
+app.post('/book-event', async (req, res) => {
+    try {
+        const { user_id, event_id, tickets } = req.body;
+        
+        // Send request to Booking Service
+        const response = await axios.post('http://localhost:3003/bookings', { user_id, event_id, tickets });
+        
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error creating booking:', error);
+        res.status(500).json({ error: "Failed to create booking" });
+    }
+});
+
+
 
 app.listen(3001, () => console.log('User Service running on port 3001'));

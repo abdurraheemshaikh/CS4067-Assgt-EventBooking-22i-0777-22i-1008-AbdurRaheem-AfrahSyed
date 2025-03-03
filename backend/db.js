@@ -1,5 +1,5 @@
 const { Pool } = require("pg");
-require(".env").config();
+require("dotenv").config();
 
 const userDb = new Pool({ connectionString: process.env.USERDB_URL });
 const bookingDb = new Pool({ connectionString: process.env.BOOKINGDB_URL });

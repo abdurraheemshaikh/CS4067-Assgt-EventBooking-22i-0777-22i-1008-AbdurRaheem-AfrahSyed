@@ -1,61 +1,157 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import psycopg2
 import pika
+import json
+import requests
 
-app = Flask(__name__)
+app = FastAPI()
 
-# Connection to bookingdb for bookings
-booking_conn = psycopg2.connect(
-    database="bookingdb",
-    user="postgres",
-    password="678678",
-    host="localhost",
-    port="5432"
+# ✅ CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
-booking_cur = booking_conn.cursor()
 
-# Connection to userdb for users
-user_conn = psycopg2.connect(
-    database="userdb",
-    user="postgres",
-    password="678678",
-    host="localhost",
-    port="5432"
-)
-user_cur = user_conn.cursor()
+# ✅ Database connection for bookings
+try:
+    booking_conn = psycopg2.connect(
+        database="bookingdb",
+        user="postgres",
+        password="678678",
+        host="localhost",
+        port="5432"
+    )
+    booking_cur = booking_conn.cursor()
+    print("✅ Connected to bookingdb")
+except Exception as e:
+    print(f"❌ Error connecting to bookingdb: {e}")
 
-@app.route('/bookings', methods=['POST'])
-def create_booking():
+# ✅ Database connection for users
+try:
+    user_conn = psycopg2.connect(
+        database="userdb",
+        user="postgres",
+        password="678678",
+        host="localhost",
+        port="5432"
+    )
+    user_cur = user_conn.cursor()
+    print("✅ Connected to userdb")
+except Exception as e:
+    print(f"❌ Error connecting to userdb: {e}")
+
+# ✅ Define Pydantic Model for Booking Request
+class BookingRequest(BaseModel):
+    user_id: int
+    event_id: int
+    tickets: int
+
+@app.get("/events/{event_id}/availability")
+def check_event_availability(event_id: int):
     try:
-        data = request.json
-        user_id = data.get('user_id')
-        event_id = data.get('event_id')
+        response = requests.get("http://localhost:3002/events", timeout=5)  # ✅ Added timeout
+        response.raise_for_status()  # ✅ Raise error for bad responses (4xx, 5xx)
+        events = response.json()
 
-        if not user_id or not event_id:
-            return jsonify({'error': 'Missing user_id or event_id'}), 400
+        event = next((e for e in events if e["event_id"] == event_id), None)
+        if event:
+            return {"event_id": event_id, "available_tickets": event["available_tickets"], "price_per_ticket": event["price"]}
 
-        # Check if user exists in userdb (explicit schema `public`)
-        user_cur.execute('SELECT id FROM public.users WHERE id = %s', (user_id,))
-        user = user_cur.fetchone()
-        if not user:
-            return jsonify({'error': 'User does not exist'}), 404
+        raise HTTPException(status_code=404, detail="Event not found")
 
-        # Insert booking into bookingdb
-        booking_cur.execute('INSERT INTO bookings (user_id, event_id) VALUES (%s, %s) RETURNING id', (user_id, event_id))
-        booking_id = booking_cur.fetchone()[0]
-        booking_conn.commit()
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching event details: {str(e)}")
 
-        # Send notification to RabbitMQ
-        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-        channel = connection.channel()
-        channel.queue_declare(queue='notification_queue')
-        channel.basic_publish(exchange='', routing_key='notification_queue', body=f'Booking {booking_id} confirmed for user {user_id}')
-        connection.close()
+@app.post("/bookings")
+def create_booking(request: BookingRequest):  
+    try:
+        print("📌 Received Booking Request:", request.dict())
 
-        return jsonify({'message': f'Booking {booking_id} confirmed and notification sent'}), 201
+        # ✅ Check if user exists
+        try:
+            user_cur.execute('SELECT user_id FROM public.users WHERE user_id = %s', (request.user_id,))
+            user = user_cur.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="User does not exist")
+        except Exception as e:
+            print(f"❌ Database error while checking user: {e}")
+            raise HTTPException(status_code=500, detail="Database error")
+
+        # ✅ Check Event Availability
+        try:
+            response = requests.get("http://localhost:3002/events", timeout=5)  
+            response.raise_for_status()
+            events = response.json()
+            event = next((e for e in events if e["event_id"] == request.event_id), None)
+
+            if not event:
+                raise HTTPException(status_code=404, detail="Event not found")
+            
+            if event["available_tickets"] < request.tickets:
+                raise HTTPException(status_code=400, detail="Not enough tickets available")
+
+            price_per_ticket = event["price"]
+            total_payment = price_per_ticket * request.tickets
+
+        except requests.RequestException as e:
+            print(f"❌ Event service error: {e}")
+            raise HTTPException(status_code=500, detail="Error checking event availability")
+
+        # ✅ Insert booking into database with `payment_amount`
+        try:
+            booking_cur.execute(
+                '''INSERT INTO bookings (user_id, event_id, tickets, payment_amount, status) 
+                   VALUES (%s, %s, %s, %s, %s) 
+                   RETURNING booking_id''',
+                (request.user_id, request.event_id, request.tickets, total_payment, "PENDING")
+            )
+
+            booking_data = booking_cur.fetchone()
+            if not booking_data:
+                raise HTTPException(status_code=500, detail="Booking failed")
+            
+            booking_id = booking_data[0]
+            booking_conn.commit()
+            print(f"📌 Booking {booking_id} inserted successfully!")
+        except Exception as e:
+            print(f"❌ Database error while inserting booking: {e}")
+            booking_conn.rollback()
+            raise HTTPException(status_code=500, detail="Database error while inserting booking")
+
+        # ✅ Send Notification to RabbitMQ
+        try:
+            connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+            channel = connection.channel()
+            channel.queue_declare(queue='notification_queue')
+            message = json.dumps({
+                "booking_id": booking_id,
+                "user_id": request.user_id,
+                "event_id": request.event_id,
+                "tickets": request.tickets,
+                "payment_amount": total_payment,
+                "status": "CONFIRMED"
+            })
+            channel.basic_publish(exchange='', routing_key='notification_queue', body=message)
+            channel.close()  # ✅ Ensure RabbitMQ channel closes
+            print("📌 Notification sent to RabbitMQ")
+        except Exception as e:
+            print(f"❌ RabbitMQ error: {e}")
+
+        return {"message": f"Booking {booking_id} confirmed and notification sent"}
+
+    except HTTPException as http_err:
+        print("❌ HTTP Error:", http_err)
+        raise http_err  # Re-raise HTTP exceptions
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(port=3003)
+        print("❌ Unexpected Error:", str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
+    
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=3003)
