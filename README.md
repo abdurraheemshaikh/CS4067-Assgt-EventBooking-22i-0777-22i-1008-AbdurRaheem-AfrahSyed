@@ -48,13 +48,13 @@ pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo<br>
 net start RabbitMQ  
 
 ### Start User Service
-uvicorn user_service:app --host 0.0.0.0 --port 3001 --reload
+node server.js
 
 ### Start Event Service
-node event_service.js
+node server.js
 
 ### Start Booking Service
-uvicorn booking_service:app --host 0.0.0.0 --port 3003 --reload
+uvicorn app:app --host 0.0.0.0 --port 3003 --reload
 
 ### Start Notification Service
-uvicorn notification_service:app --host 0.0.0.0 --port 3004 --reload
+uvicorn app:app --host 0.0.0.0 --port 3004 --reload
