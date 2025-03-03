@@ -76,6 +76,7 @@ Provides API to fetch notifications<br>
   └───────────────────────────────────┘
 
 
+
 ## 🛠 **Setup Guide**
 Run the following command in your terminal to install all dependencies:<br>
 pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo<br>
