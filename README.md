@@ -61,20 +61,5 @@ uvicorn app:app --host 0.0.0.0 --port 3003 --reload
 uvicorn app:app --host 0.0.0.0 --port 3004 --reload
 
 
-+--------------------+       +------------------+
-|  👤 User Service   | <--> | 📖 Booking Service |
-|  (FastAPI,        |       | (FastAPI,         |
-|  PostgreSQL)      |       | PostgreSQL,       |
-|  (Auth)          |       | RabbitMQ)         |
-+--------------------+       +------------------+
-         |                         |
-         |         (RabbitMQ)       |
-         |                         |
-+--------------------+       +------------------+
-|  🎟 Event Service  | <--> | 📩 Notification   |
-|  (Node.js,        |       | (FastAPI,        |
-|  Express,        |       | RabbitMQ,        |
-|  MongoDB)        |       | MongoDB)         |
-|  (Stores Events) |       | (Sends Notifs)   |
-+--------------------+       +------------------+
++--------------------+ +------------------+ | 👤 User Service | <--> | 📖 Booking Service | | (FastAPI, | | (FastAPI, | | PostgreSQL) | | PostgreSQL, | | (Auth) | | RabbitMQ) | +--------------------+ +------------------+ | | | (RabbitMQ) | | | +--------------------+ +------------------+ | 🎟 Event Service | <--> | 📩 Notification | | (Node.js, | | (FastAPI, | | Express, | | RabbitMQ, | | MongoDB) | | MongoDB) | | (Stores Events) | | (Sends Notifs) | +--------------------+ +------------------+
 
