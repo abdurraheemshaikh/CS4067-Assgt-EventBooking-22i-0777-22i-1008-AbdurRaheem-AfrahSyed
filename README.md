@@ -61,9 +61,20 @@ uvicorn app:app --host 0.0.0.0 --port 3003 --reload
 uvicorn app:app --host 0.0.0.0 --port 3004 --reload
 
 
-```mermaid
-graph TD;
-    UserService[👤 User Service (FastAPI, PostgreSQL)] -->|Auth| BookingService[📖 Booking Service (FastAPI, PostgreSQL, RabbitMQ)];
-    BookingService -->|RabbitMQ| NotificationService[📩 Notification (FastAPI, RabbitMQ, MongoDB)];
-    BookingService -->|RabbitMQ| EventService[🎟 Event Service (Node.js, Express, MongoDB)];
++--------------------+       +------------------+
+|  👤 User Service   | <--> | 📖 Booking Service |
+|  (FastAPI,        |       | (FastAPI,         |
+|  PostgreSQL)      |       | PostgreSQL,       |
+|  (Auth)          |       | RabbitMQ)         |
++--------------------+       +------------------+
+         |                         |
+         |         (RabbitMQ)       |
+         |                         |
++--------------------+       +------------------+
+|  🎟 Event Service  | <--> | 📩 Notification   |
+|  (Node.js,        |       | (FastAPI,        |
+|  Express,        |       | RabbitMQ,        |
+|  MongoDB)        |       | MongoDB)         |
+|  (Stores Events) |       | (Sends Notifs)   |
++--------------------+       +------------------+
 
