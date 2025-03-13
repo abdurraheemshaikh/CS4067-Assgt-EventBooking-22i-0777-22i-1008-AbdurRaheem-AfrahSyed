@@ -59,3 +59,11 @@ uvicorn app:app --host 0.0.0.0 --port 3003 --reload
 
 ### Start Notification Service
 uvicorn app:app --host 0.0.0.0 --port 3004 --reload
+
+
+```mermaid
+graph TD;
+    UserService[👤 User Service (FastAPI, PostgreSQL)] -->|Auth| BookingService[📖 Booking Service (FastAPI, PostgreSQL, RabbitMQ)];
+    BookingService -->|RabbitMQ| NotificationService[📩 Notification (FastAPI, RabbitMQ, MongoDB)];
+    BookingService -->|RabbitMQ| EventService[🎟 Event Service (Node.js, Express, MongoDB)];
+
