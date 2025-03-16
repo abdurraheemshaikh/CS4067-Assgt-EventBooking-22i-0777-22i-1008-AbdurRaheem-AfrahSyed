@@ -1,5 +1,5 @@
 # 🎟️ Microservices-Based Event Booking System
-#### BY Abdur Raheem and Afrah Syed
+#### BY Abdur Raheem Shaikh and Afrah Syed
 This project implements an **Event Booking System** using **FastAPI, Express.js, MongoDB, PostgreSQL, and RabbitMQ**. It allows users to book event tickets, handle payments, and receive notifications via RabbitMQ.
 
 ---
@@ -48,8 +48,10 @@ Run the following command in your terminal to install all dependencies:<br>
 pip install fastapi uvicorn pydantic psycopg2 pika requests pymongo<br>
 net start RabbitMQ  
 
+
 ### Start User Service
 node server.js
+
 
 ### Start Event Service
 node server.js
